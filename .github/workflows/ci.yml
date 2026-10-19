@@ -35,9 +35,13 @@ jobs:
       - name: 启动服务并做接口冒烟测试
         working-directory: backend
         run: |
-          # 用 dev profile 起服务（H2 内存库，不需要 MySQL）
+          # 关掉 bash 的 -e：这一段是"测试脚本"，要自己收集失败并统一退出，
+          # 不能让任何一条命令的非零返回码提前终止整个步骤。
+          set +e
+
           java -Dfile.encoding=UTF-8 -jar target/*.jar --spring.profiles.active=dev &
-          # 等端口就绪，最多等 60 秒
+          APP_PID=$!
+
           for i in $(seq 1 60); do
             if curl -sf -o /dev/null http://localhost:8080/api/v3/api-docs; then
               echo "服务已就绪（${i}s）"; break
@@ -46,41 +50,48 @@ jobs:
           done
 
           BASE=http://localhost:8080/api
-          echo "::group::登录并获取 token"
           TOKEN=$(curl -s -X POST "$BASE/auth/login" \
             -H "Content-Type: application/json" \
             --data-binary '{"username":"admin","password":"admin123"}' \
             | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
-          test -n "$TOKEN" || { echo "登录失败"; exit 1; }
-          echo "::endgroup::"
+
+          echo "token 长度: ${#TOKEN}"
+          if [ -z "$TOKEN" ]; then
+            echo "登录失败，终止测试"
+            kill $APP_PID 2>/dev/null
+            exit 1
+          fi
 
           fail=0
-          check() { # 期望业务码  描述  URL  [带token]
-            local want=$1 desc=$2 url=$3 withToken=$4
-            local auth=()
-            # 注意：不能写 `[ ... ] && auth=...`。
-            # GitHub Actions 用 bash -e 运行，条件为假时该行返回 1，脚本会直接中止。
-            if [ "$withToken" = "yes" ]; then
-              auth=(-H "Authorization: Bearer $TOKEN")
-            fi
-            local got
-            got=$(curl -s "${auth[@]}" "$BASE$url" \
-              | sed -n 's/.*"code":\([0-9]*\).*/\1/p' | head -1) || true
+
+          # 提取响应体里的业务码
+          code_of() {
+            curl -s "$@" | sed -n 's/.*"code":\([0-9]*\).*/\1/p' | head -n1
+          }
+
+          check() {
+            want="$1"
+            desc="$2"
+            shift 2
+            got=$(code_of "$@")
             if [ "$got" = "$want" ]; then
               echo "  [PASS] $desc (code=$got)"
             else
-              echo "  [FAIL] $desc 期望 $want 实际 $got"; fail=1
+              echo "  [FAIL] $desc：期望 $want，实际 '$got'"
+              fail=1
             fi
           }
 
           echo "::group::接口断言"
-          check 200 "设备分页查询"       "/equipments?pageNum=1&pageSize=5" yes
-          check 200 "任务分页查询"       "/tasks?pageNum=1&pageSize=5" yes
-          check 200 "看板统计"           "/dashboard" yes
-          check 401 "无 token 被拒"      "/equipments" no
-          check 404 "资源不存在"         "/equipments/999999" yes
-          check 404 "接口路径不存在"     "/not-exist" yes
+          check 200 "设备分页查询"   -H "Authorization: Bearer $TOKEN" "$BASE/equipments?pageNum=1&pageSize=5"
+          check 200 "任务分页查询"   -H "Authorization: Bearer $TOKEN" "$BASE/tasks?pageNum=1&pageSize=5"
+          check 200 "看板统计"       -H "Authorization: Bearer $TOKEN" "$BASE/dashboard"
+          check 401 "无 token 被拒"  "$BASE/equipments"
+          check 404 "资源不存在"     -H "Authorization: Bearer $TOKEN" "$BASE/equipments/999999"
+          check 404 "接口路径不存在" -H "Authorization: Bearer $TOKEN" "$BASE/not-exist"
           echo "::endgroup::"
+
+          kill $APP_PID 2>/dev/null
           exit $fail
 
   frontend:
