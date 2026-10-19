@@ -64,9 +64,12 @@ jobs:
 
           fail=0
 
-          # 提取响应体里的业务码
+          # 提取响应体里的业务码。
+          # 不能用 sed 's/.*"code":\([0-9]*\).*/\1/'：.* 是贪婪匹配，
+          # 会匹配到 JSON 里最后一个 "code":（设备数据里有 "code":"EQ-1013" 这种字符串字段），
+          # 结果捕获到空串。这里只匹配"冒号后紧跟数字"的形式。
           code_of() {
-            curl -s "$@" | sed -n 's/.*"code":\([0-9]*\).*/\1/p' | head -n1
+            curl -s "$@" | grep -o '"code":[0-9]*' | head -n1 | cut -d: -f2
           }
 
           check() {
@@ -82,14 +85,14 @@ jobs:
             fi
           }
 
-          echo "::group::接口断言"
+          echo "---------- 接口断言 ----------"
           check 200 "设备分页查询"   -H "Authorization: Bearer $TOKEN" "$BASE/equipments?pageNum=1&pageSize=5"
           check 200 "任务分页查询"   -H "Authorization: Bearer $TOKEN" "$BASE/tasks?pageNum=1&pageSize=5"
           check 200 "看板统计"       -H "Authorization: Bearer $TOKEN" "$BASE/dashboard"
           check 401 "无 token 被拒"  "$BASE/equipments"
           check 404 "资源不存在"     -H "Authorization: Bearer $TOKEN" "$BASE/equipments/999999"
           check 404 "接口路径不存在" -H "Authorization: Bearer $TOKEN" "$BASE/not-exist"
-          echo "::endgroup::"
+          echo "------------------------------"
 
           kill $APP_PID 2>/dev/null
           exit $fail
