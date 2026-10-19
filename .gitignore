@@ -1,0 +1,45 @@
+# ============================================================
+# 根目录 .gitignore
+# backend/ 与 frontend/ 下还有各自的 .gitignore，两者都会生效
+# ============================================================
+
+# ---- 后端构建产物 ----
+backend/target/
+*.jar
+*.war
+
+# ---- 前端构建产物与依赖 ----
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-error.log*
+
+# ---- IDE ----
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+
+# ---- 运行时数据 ----
+uploads/
+logs/
+*.log
+
+# ---- 本地数据库与备份 ----
+*.mv.db
+*.trace.db
+*.sql.bak
+
+# ---- 系统 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 注意：.env.development / .env.production 要提交 ----
+# 它们只包含前端构建时注入的公开配置（API 前缀），不含任何密钥。
+# 真正的密钥（JWT_SECRET、数据库密码）走环境变量或 application-prod.yml 的占位符。

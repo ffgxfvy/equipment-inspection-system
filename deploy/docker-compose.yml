@@ -1,0 +1,81 @@
+# ============================================================
+# 一键启动：MySQL + 后端 + 前端
+#
+#   用法（在项目根目录）：
+#     docker compose -f deploy/docker-compose.yml up -d --build
+#
+#   启动后访问 http://localhost  （nginx 暴露 80 端口）
+#   接口文档：http://localhost/api/swagger-ui.html
+#   演示账号：admin / admin123
+# ============================================================
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: inspection-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: inspection
+      TZ: Asia/Shanghai
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --default-time-zone=+08:00
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动自动执行建表 + 种子数据（文件名顺序即执行顺序）
+      - ../sql/schema-mysql.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../sql/data-mysql.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    healthcheck:
+      # 后端依赖 MySQL 就绪，用 mysqladmin ping 做健康检查
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - inspection-net
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: inspection-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: inspection
+      DB_USER: root
+      DB_PASSWORD: root123456
+      JWT_SECRET: please-change-this-to-a-random-64-char-string-in-production
+      TZ: Asia/Shanghai
+    volumes:
+      - upload-data:/app/uploads
+    networks:
+      - inspection-net
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: inspection-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - inspection-net
+
+volumes:
+  mysql-data:
+  upload-data:
+
+networks:
+  inspection-net:
+    driver: bridge

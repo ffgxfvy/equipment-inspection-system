@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: 后端（编译 + 单元测试）
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: 赋予 mvnw 执行权限
+        run: chmod +x backend/mvnw
+
+      - name: 单元测试
+        working-directory: backend
+        run: ./mvnw -B -ntp test
+
+      - name: 打包可执行 jar
+        working-directory: backend
+        run: ./mvnw -B -ntp package -DskipTests
+
+      - name: 启动服务并做接口冒烟测试
+        working-directory: backend
+        run: |
+          # 用 dev profile 起服务（H2 内存库，不需要 MySQL）
+          java -Dfile.encoding=UTF-8 -jar target/*.jar --spring.profiles.active=dev &
+          # 等端口就绪，最多等 60 秒
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null http://localhost:8080/api/v3/api-docs; then
+              echo "服务已就绪（${i}s）"; break
+            fi
+            sleep 1
+          done
+
+          BASE=http://localhost:8080/api
+          echo "::group::登录并获取 token"
+          TOKEN=$(curl -s -X POST "$BASE/auth/login" \
+            -H "Content-Type: application/json" \
+            --data-binary '{"username":"admin","password":"admin123"}' \
+            | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+          test -n "$TOKEN" || { echo "登录失败"; exit 1; }
+          echo "::endgroup::"
+
+          fail=0
+          check() { # 期望业务码  描述  URL  [带token]
+            local want=$1 desc=$2 url=$3 withToken=$4
+            local auth=()
+            [ "$withToken" = "yes" ] && auth=(-H "Authorization: Bearer $TOKEN")
+            local got=$(curl -s "${auth[@]}" "$BASE$url" \
+              | sed -n 's/.*"code":\([0-9]*\).*/\1/p' | head -1)
+            if [ "$got" = "$want" ]; then
+              echo "  [PASS] $desc (code=$got)"
+            else
+              echo "  [FAIL] $desc 期望 $want 实际 $got"; fail=1
+            fi
+          }
+
+          echo "::group::接口断言"
+          check 200 "设备分页查询"       "/equipments?pageNum=1&pageSize=5" yes
+          check 200 "任务分页查询"       "/tasks?pageNum=1&pageSize=5" yes
+          check 200 "看板统计"           "/dashboard" yes
+          check 401 "无 token 被拒"      "/equipments" no
+          check 404 "资源不存在"         "/equipments/999999" yes
+          check 404 "接口路径不存在"     "/not-exist" yes
+          echo "::endgroup::"
+          exit $fail
+
+  frontend:
+    name: 前端（构建）
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package.json
+
+      - name: 安装依赖
+        working-directory: frontend
+        run: npm install --no-fund --no-audit
+
+      - name: 生产构建
+        working-directory: frontend
+        run: npm run build
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          if-no-files-found: error

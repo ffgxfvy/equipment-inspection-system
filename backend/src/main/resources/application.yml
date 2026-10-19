@@ -1,0 +1,59 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: equipment-inspection-system
+  profiles:
+    # 默认走 dev（H2 内存库，零依赖即可启动）
+    # 要用 MySQL 就改成 prod，或启动时加 --spring.profiles.active=prod
+    active: dev
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+    banner: false
+
+# 接口文档：http://localhost:8080/api/swagger-ui.html
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+# 业务自定义配置
+app:
+  jwt:
+    # 生产环境请换成随机长字符串并放到环境变量里
+    secret: ${JWT_SECRET:equipment-inspection-system-dev-secret-key-change-me-in-production}
+    # token 有效期（毫秒），默认 12 小时
+    expire: 43200000
+    header: Authorization
+    prefix: "Bearer "
+  upload:
+    # 巡检现场照片的存放目录
+    dir: ${UPLOAD_DIR:./uploads}
+    # 可访问的 URL 前缀
+    url-prefix: /files
+
+logging:
+  level:
+    com.renjie.inspection: debug

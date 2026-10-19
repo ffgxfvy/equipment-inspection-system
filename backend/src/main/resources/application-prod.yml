@@ -1,0 +1,18 @@
+# ============================================================
+# prod：MySQL 8（需要先建库并执行 sql/schema-mysql.sql）
+# ============================================================
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:inspection}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      pool-name: InspectionHikariPool
+  # 生产环境不自动执行建表脚本（由 DBA 或 CI 执行 sql/ 下的脚本）
+  sql:
+    init:
+      mode: never
