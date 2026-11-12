@@ -61,16 +61,17 @@ public class InspectionRecordService {
 
     /** 分页查询（含关联名称回填） */
     public PageResult<InspectionRecord> page(RecordQuery query) {
+        LocalDateTime start = StringUtils.hasText(query.getStartDate()) ? parseStart(query.getStartDate()) : null;
+        LocalDateTime end = StringUtils.hasText(query.getEndDate()) ? parseEnd(query.getEndDate()) : null;
+
         LambdaQueryWrapper<InspectionRecord> wrapper = Wrappers.<InspectionRecord>lambdaQuery()
                 .eq(query.getEquipmentId() != null, InspectionRecord::getEquipmentId, query.getEquipmentId())
                 .eq(query.getInspectorId() != null, InspectionRecord::getInspectorId, query.getInspectorId())
                 .eq(StringUtils.hasText(query.getResult()), InspectionRecord::getResult, query.getResult())
                 .eq(StringUtils.hasText(query.getHandleStatus()),
                         InspectionRecord::getHandleStatus, query.getHandleStatus())
-                .ge(StringUtils.hasText(query.getStartDate()),
-                        InspectionRecord::getInspectTime, parseStart(query.getStartDate()))
-                .le(StringUtils.hasText(query.getEndDate()),
-                        InspectionRecord::getInspectTime, parseEnd(query.getEndDate()))
+                .ge(start != null, InspectionRecord::getInspectTime, start)
+                .le(end != null, InspectionRecord::getInspectTime, end)
                 .orderByDesc(InspectionRecord::getInspectTime);
 
         Page<InspectionRecord> page = recordMapper.selectPage(

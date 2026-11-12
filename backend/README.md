@@ -194,7 +194,7 @@ equipment-inspection-system/
 | 文件 | `POST /files/upload` |
 | 用户 | `GET /users/inspectors` |
 
-详细说明见 [`docs/api.md`](docs/api.md)。
+详细说明见 [`docs/api.md`](../docs/api.md)。
 
 ## 八、已知局限与后续优化
 

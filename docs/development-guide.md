@@ -36,7 +36,7 @@ npm -v
 IDEA 启动后：`File` → `Settings` → `Build, Execution, Deployment` → `Build Tools` → `Maven`
 
 1. 找到 **User settings file**，勾上 `Override`，路径设为：
-   `C:\Users\ffgxf\.m2\settings.xml`
+   `%USERPROFILE%\.m2\settings.xml`（Unix/macOS 为 `~/.m2/settings.xml`）
 2. 如果这个文件不存在，先创建它，内容：
 
 ```xml

@@ -48,13 +48,13 @@ INSERT INTO inspection_task (task_no, name, equipment_id, inspector_id, plan_tim
 ('TK-20260920', '换热器停运前检查',         10, 2, '2026-09-15 09:00:00', NULL,                  'CANCELLED', 'LOW',    '设备已停运，任务取消', 0, '2026-09-10 08:00:00', '2026-09-15 09:30:00');
 
 INSERT INTO inspection_record (task_id, equipment_id, inspector_id, inspect_time, result, abnormal_desc, handle_status, handle_remark, photo_url, temperature, pressure, remark, deleted, create_time, update_time) VALUES
-(1,  1,  2, '2026-10-08 10:20:00', 'NORMAL',   '', '', '', NULL, '68.50', '1.25', '读数正常', 0, '2026-10-08 10:20:00', '2026-10-08 10:20:00'),
-(2,  2,  2, '2026-10-08 10:25:00', 'NORMAL',   '', '', '', NULL, '82.30', NULL,   '', 0, '2026-10-08 10:25:00', '2026-10-08 10:25:00'),
-(3,  3,  3, '2026-10-08 10:40:00', 'NORMAL',   '', '', '', NULL, NULL,    '0.42', '', 0, '2026-10-08 10:40:00', '2026-10-08 10:40:00'),
-(4,  5,  2, '2026-10-10 09:30:00', 'NORMAL',   '', '', '', NULL, '41.20', NULL,   '各相温差小于 5 度', 0, '2026-10-10 09:30:00', '2026-10-10 09:30:00'),
-(5,  6,  3, '2026-10-12 16:05:00', 'ABNORMAL', '出口压力表读数 2.80 MPa，与工艺侧 DCS 显示 1.95 MPa 偏差约 0.85 MPa，超出允许误差范围。', 'HANDLING', '已通知仪表班，计划更换压力变送器后复校。', NULL, '95.60', '2.80', '疑似表头失准', 0, '2026-10-12 16:05:00', '2026-10-12 16:05:00'),
-(6,  7,  2, '2026-10-13 09:15:00', 'ABNORMAL', '储罐液位计浮子卡涩，就地指示与远传读数不一致，偏差约 15%。', 'HANDLING', '已办理检修工作票，正在解体清洗浮子室。', NULL, NULL, '0.98', '需停产窗口处理', 0, '2026-10-13 09:15:00', '2026-10-13 09:15:00'),
-(7,  8,  3, '2026-10-11 08:50:00', 'NORMAL',   '', '', '', NULL, '178.40', '1.60', '表盘清洁度良好', 0, '2026-10-11 08:50:00', '2026-10-11 08:50:00'),
+(1,  1,  2, DATEADD('DAY', -5, CURRENT_TIMESTAMP), 'NORMAL',   '', '', '', NULL, '68.50', '1.25', '读数正常', 0, DATEADD('DAY', -5, CURRENT_TIMESTAMP), DATEADD('DAY', -5, CURRENT_TIMESTAMP)),
+(2,  2,  2, DATEADD('DAY', -5, CURRENT_TIMESTAMP), 'NORMAL',   '', '', '', NULL, '82.30', NULL,   '', 0, DATEADD('DAY', -5, CURRENT_TIMESTAMP), DATEADD('DAY', -5, CURRENT_TIMESTAMP)),
+(3,  3,  3, DATEADD('DAY', -4, CURRENT_TIMESTAMP), 'NORMAL',   '', '', '', NULL, NULL,    '0.42', '', 0, DATEADD('DAY', -4, CURRENT_TIMESTAMP), DATEADD('DAY', -4, CURRENT_TIMESTAMP)),
+(4,  5,  2, DATEADD('DAY', -3, CURRENT_TIMESTAMP), 'NORMAL',   '', '', '', NULL, '41.20', NULL,   '各相温差小于 5 度', 0, DATEADD('DAY', -3, CURRENT_TIMESTAMP), DATEADD('DAY', -3, CURRENT_TIMESTAMP)),
+(5,  6,  3, DATEADD('DAY', -1, CURRENT_TIMESTAMP), 'ABNORMAL', '出口压力表读数 2.80 MPa，与工艺侧 DCS 显示 1.95 MPa 偏差约 0.85 MPa，超出允许误差范围。', 'HANDLING', '已通知仪表班，计划更换压力变送器后复校。', NULL, '95.60', '2.80', '疑似表头失准', 0, DATEADD('DAY', -1, CURRENT_TIMESTAMP), DATEADD('DAY', -1, CURRENT_TIMESTAMP)),
+(6,  7,  2, CURRENT_TIMESTAMP,                     'ABNORMAL', '储罐液位计浮子卡涩，就地指示与远传读数不一致，偏差约 15%。', 'HANDLING', '已办理检修工作票，正在解体清洗浮子室。', NULL, NULL, '0.98', '需停产窗口处理', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(7,  8,  3, DATEADD('DAY', -2, CURRENT_TIMESTAMP), 'NORMAL',   '', '', '', NULL, '178.40', '1.60', '表盘清洁度良好', 0, DATEADD('DAY', -2, CURRENT_TIMESTAMP), DATEADD('DAY', -2, CURRENT_TIMESTAMP)),
 (8,  11, 3, '2026-09-28 10:00:00', 'ABNORMAL', '配电室 B 区湿度达 76%，超过 70% 控制限值。', 'HANDLED', '已开启除湿机，次日复测为 62%，恢复正常。', NULL, '27.80', NULL, '梅雨季常见问题', 0, '2026-09-28 10:00:00', '2026-09-29 09:00:00'),
 (9,  13, 2, '2026-09-30 11:00:00', 'NORMAL',   '', '', '', NULL, NULL, '0.66', '无泄漏', 0, '2026-09-30 11:00:00', '2026-09-30 11:00:00'),
 (10, 14, 3, '2026-10-06 14:00:00', 'NORMAL',   '', '', '', NULL, '22.30', '1.10', '消防水压正常', 0, '2026-10-06 14:00:00', '2026-10-06 14:00:00'),

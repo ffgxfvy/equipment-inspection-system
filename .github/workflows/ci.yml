@@ -88,6 +88,7 @@ jobs:
           echo "---------- 接口断言 ----------"
           check 200 "设备分页查询"   -H "Authorization: Bearer $TOKEN" "$BASE/equipments?pageNum=1&pageSize=5"
           check 200 "任务分页查询"   -H "Authorization: Bearer $TOKEN" "$BASE/tasks?pageNum=1&pageSize=5"
+          check 200 "记录分页查询"   -H "Authorization: Bearer $TOKEN" "$BASE/records?pageNum=1&pageSize=5"
           check 200 "看板统计"       -H "Authorization: Bearer $TOKEN" "$BASE/dashboard"
           check 401 "无 token 被拒"  "$BASE/equipments"
           check 404 "资源不存在"     -H "Authorization: Bearer $TOKEN" "$BASE/equipments/999999"

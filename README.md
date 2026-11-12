@@ -1,8 +1,8 @@
 # 工业设备巡检管理系统
 
 [![CI](https://github.com/ffgxfvy/equipment-inspection-system/actions/workflows/ci.yml/badge.svg)](https://github.com/ffgxfvy/equipment-inspection-system/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-43%20passed-brightgreen)](#六验证状态)
-[![api](https://img.shields.io/badge/API%20smoke-44%20passed-brightgreen)](#六验证状态)
+[![tests](https://img.shields.io/badge/tests-46%20passed-brightgreen)](#六验证状态)
+[![api](https://img.shields.io/badge/API%20smoke-19%20passed-brightgreen)](#六验证状态)
 [![java](https://img.shields.io/badge/java-17-orange)](https://adoptium.net/)
 
 > SpringBoot 3 + MyBatis-Plus + MySQL / H2 + Vue 3 + Element Plus
@@ -21,7 +21,20 @@
 - 设备该不该巡检、有没有逾期，全靠人记；
 - 发现异常之后处理到哪一步了，没有系统跟踪。
 
-**所以我用 SpringBoot + Vue 把这条流程做成了系统。** 因为我在硬件侧待过，设计数据模型时保留了温度/压力等采集字段，可以直接对接现场仪表或网关上报的数据——这是纯软件背景的开发者容易忽略的地方。
+**所以我用 SpringBoot + Vue 把这条流程做成了系统。** 因为我在硬件与机器人侧待过（LeRobot 机械臂仪表维护、嵌入式传感器采集），设计数据模型时保留了温度/压力等采集字段，可以直接对接现场仪表或网关上报的数据——这是纯软件背景的开发者容易忽略的地方。
+
+## 系统运行实拍界面
+
+> 以下截图均来自本机实测启动 `dev` profile（H2 内存库）与 Vite 前端的无头浏览器实拍：
+
+<p align="center">
+  <img src="assets/ui-dashboard.png" alt="首页看板 ECharts 统计视图" width="49%" />
+  <img src="assets/ui-equipment.png" alt="设备台账多条件筛选与分页" width="49%" />
+</p>
+<p align="center">
+  <img src="assets/ui-task.png" alt="巡检任务分派与状态机流转" width="49%" />
+  <img src="assets/ui-record.png" alt="巡检记录与异常处理闭环" width="49%" />
+</p>
 
 ## 二、功能
 
@@ -161,7 +174,10 @@ equipment-inspection-system/
 │       ├── application-dev.yml            H2 内存库（零依赖）
 │       ├── application-prod.yml           MySQL
 │       ├── schema-h2.sql / data-h2.sql    建表 + 演示数据
-│   └── src/test/java/.../TaskStatusTest.java   状态机单元测试
+│   └── src/test/java/.../
+│       ├── ApiResponseTest.java / EquipmentExcelServiceTest.java
+│       ├── EquipmentImportParseTest.java / TaskStatusTest.java
+│       └── RecordPageTest.java            状态机、Excel 与查询回归单元测试（46 用例）
 ├── frontend/
 │   ├── package.json / vite.config.js / index.html
 │   ├── Dockerfile / nginx.conf
@@ -193,54 +209,38 @@ equipment-inspection-system/
 
 | 验证项 | 结果 | 怎么验证的 |
 |---|---|---|
-| 后端编译 | ✅ 52 个 Java 文件全部编译通过 | `mvnw package` |
-| 单元测试 | ✅ **43 个用例通过** | `mvnw test` |
-| 接口冒烟测试 | ✅ **44 项断言通过** | 起服务后用 curl 逐个调接口 |
-| Excel 导出 | ✅ 生成的文件用 openpyxl 读回核对：16 行 × 14 列、表头正确、状态已翻译成中文、无错位 | curl 下载后解析文件内容 |
-| Excel 导入 | ✅ 混合测试文件 6 行 → **成功 2、失败 4**，错误精确到行号与原因；重复导入时 6 行全部报"编号已存在" | curl 上传 xlsx 后检查响应 |
-| 前端构建 | ✅ 2240 个模块，5 个页面分别打包 | `npm run build` |
-| 启动方式 | ✅ `mvn spring-boot:run` 与 `java -jar` 两种都验证过 | 实测启动耗时约 5 秒 |
+| 后端编译 | ✅ 55 个 Java 主源码文件 + 5 个测试文件全部编译通过 | `mvn -o test package` |
+| 单元测试 | ✅ **46 个用例通过**（状态机 / Excel 读写 / 统一响应 / 日期查询边界） | `mvn -o test`（`RecordPageTest` 防止 MyBatis-Plus 条件下急切求值 NPE/400） |
+| 接口冒烟测试 | ✅ **本地 19 项核心链路全通 + GitHub Actions CI 7 项端点断言** | 起服务后用 Python / curl 逐个调接口 |
+| 前端界面实测 | ✅ 4 大核心页面实机截图验证无控制台/弹窗报错 | Chrome Headless + Vite 联调截图至 `assets/ui-*.png` |
+| Excel 读写校验 | ✅ `EquipmentExcelServiceTest` (10 例) + `EquipmentImportParseTest` (12 例) + 线上 `/equipments/export` 二进制 PK 头实测 | `mvn -o test` + 线上下载校验 (`5941 B`) |
+| 前端构建 | ✅ 2240 个模块打包通过（含代码分包与 Element Plus/ECharts） | `npm run build` |
+| 启动方式 | ✅ `mvn spring-boot:run` 与 `java -jar --spring.profiles.active=dev` | 本机独立启动验证通过 |
 
-### 冒烟测试覆盖了什么
+### 实测与 CI 覆盖矩阵
 
-不只是"接口能通"，重点验证**业务规则真的生效**：
+不只是"接口能通"，重点验证**业务规则、鉴权与边界防御**（本地起服务后实测 19 项接口全绿，GitHub Actions CI 每次推送执行 46 项单测 + 7 项接口冒烟 + 前端生产构建）：
 
-| 分组 | 断言数 | 关键用例 |
+| 分组 | 实测项 | 关键用例 |
 |---|---|---|
-| 认证 | 5 | 登录成功/密码错误被拒/巡检员登录 |
-| 鉴权拦截 | 2 | 无 token → 401；巡检员新增设备 → 403 |
-| 设备台账 | 5 | 分页总数、类目列表、到期未巡检筛选 |
-| 巡检任务 | 3 | **关联字段（设备名/巡检员名）回填正确** |
-| 状态机 | 3 | **DONE → PENDING 被拒**；PENDING → DOING 允许；终态不可再流转 |
-| 看板统计 | 5 | 状态分布、7 天趋势点数、待处理异常 |
-| 异常联动 | 5 | 提交异常 → **设备自动置为 FAULT**；温度回写；下次巡检时间重算 |
-| 异常闭环 | 3 | 处理完成 → **设备自动恢复 RUNNING**；重复处理被拒 |
-| 参数校验 | 3 | 异常缺描述 → 400；必填为空 → 400；编号重复 → 409 |
-| 错误处理 | 8 | 畸形 JSON → 400；缺参数 → 400；类型错误 → 400；方法不支持 → 405；路径不存在 → 404 |
+| 认证与 RBAC | 5 | 管理员/巡检员登录、错误密码拒登、无 Token → `401`、巡检员越权建设备 → `403` |
+| 设备台账与导出 | 4 | 分页总数 (`15`)、类目去重、`overdueOnly` 到期筛选、`/equipments/export` 有效 `.xlsx` 二进制流 |
+| 看板与巡检记录 | 2 | `/dashboard` 5 组统计块完整返回、`/records` 无日期范围全量分页 (`20` 条) |
+| 任务与状态机 | 2 | `/tasks` 分页关联回填、`DONE → PENDING` 非法流转被拒 (`409`) |
+| 校验与边界兜底 | 6 | 编号重复 (`409`)、异常结论缺描述 (`400`)、畸形 JSON (`400`)、不存在 ID/路径 (`404`)、错误 HTTP 方法 (`405`) |
 
-### 联调中实际发现并修掉的问题
+### 联调中实际发现并修掉的 3 个真实问题
 
-这两个问题**只看代码是发现不了的**，都是跑起来之后才暴露：
+这三个问题都是**只看代码或只写 Mock 单元测试发现不了的**，必须跑起来或全栈联调才暴露：
 
-**1. 异常结论缺描述时返回 500 而不是 400**
-一开始只写了业务异常处理器，参数校验失败、JSON 格式错误这些框架级异常全部落到
-`Exception` 兜底里返回 500。这会把客户端的错误算到服务端头上，调用方会以为是服务端故障
-而反复重试。补了 6 个针对性的处理器（`HttpMessageNotReadableException`、
-`MissingServletRequestParameterException`、`MethodArgumentTypeMismatchException`、
-`HttpRequestMethodNotSupportedException`、`MaxUploadSizeExceededException`、
-`NoResourceFoundException`）。
+**1. 巡检记录首页空日期触发 MyBatis-Plus 急切求值报错（UI 联调发现）**
+在 `InspectionRecordService.page()` 里曾写 `.ge(hasText(startDate), InspectTime, parseStart(startDate))`。Java 方法调用前会**先求值全部实参**——即使 `hasText(null)` 返回 `false`，`parseStart(null)` 仍被执行，导致前端进入 `/record` 页面立刻弹窗「开始日期格式应为 yyyy-MM-dd：null」。改成先三元运算求值 `start`/`end` 为 `null` 后再传入 `wrapper`，并在 `RecordPageTest` 与 CI 中补齐回归用例。
 
-**2. HTTP 状态码与前端拦截器冲突，导致用户看不到校验提示**
-一开始给错误处理器加了 `@ResponseStatus(BAD_REQUEST)`，让 HTTP 也返回 400——看起来更符合
-REST 规范。但前端 axios 拦截器对 HTTP 4xx 会走 error 分支，那里只能拿到状态码，
-于是界面显示的是"请求失败（400）"，而服务端写的"结论为异常时，必须填写异常描述"
-这类提示被丢掉了。
+**2. 异常结论缺描述时返回 500 而不是 400**
+一开始只写了业务异常处理器，参数校验失败、JSON 格式错误这些框架级异常全部落到 `Exception` 兜底里返回 500。补了 6 个针对性的处理器（`HttpMessageNotReadableException`、`MissingServletRequestParameterException`、`MethodArgumentTypeMismatchException`、`HttpRequestMethodNotSupportedException`、`MaxUploadSizeExceededException`、`NoResourceFoundException`）。
 
-改成 HTTP 恒为 200、业务码放响应体，前端就能读到真正的提示语。
-**REST 规范性与"用户能看到有用的错误提示"之间，这个项目选了后者。**
-
-> 这两处修改都记在代码注释里（见 `GlobalExceptionHandler` 的类注释），面试时可以
-> 作为"我遇到过什么问题、怎么定位、怎么取舍"的素材。
+**3. HTTP 状态码与前端拦截器冲突，导致用户看不到校验提示**
+一开始给错误处理器加了 `@ResponseStatus(BAD_REQUEST)`，让 HTTP 也返回 400——看起来更符合 REST 规范。但前端 axios 拦截器对 HTTP 4xx 会走 error 分支，那里只能拿到状态码，于是界面只显示"请求失败（400）"，服务端写的"结论为异常时，必须填写异常描述"这类提示就被丢掉了。改成 HTTP 恒为 200、业务码放响应体后，前端就能准确展示错误原因（见 `GlobalExceptionHandler` 类注释中的设计取舍说明）。
 
 ## 七、数据库设计
 
